@@ -1,8 +1,9 @@
 // Score.js
 import React from 'react';
+import './score.css';
 
-const Score = ({ score, highScore }) => (
-  <div style={{
+const Score = ({ score, highScore, blink }) => (
+  <div className={`score-container ${blink ? 'blink-twice' : ''}`} style={{
     position: 'absolute',
     top: '16px',
     right: '16px',

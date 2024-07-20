@@ -1,0 +1,15 @@
+/* Intro.css or a dedicated CSS file for animations */
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  .blink {
+    animation: blink 0.5s ease-in-out;
+  }
+  
+  .blink-twice {
+    animation: blink 0.5s ease-in-out 0s 2;
+  }
+  

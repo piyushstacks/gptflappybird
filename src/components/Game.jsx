@@ -29,8 +29,8 @@ const Game = () => {
   const [gameSpeed, setGameSpeed] = useState(INITIAL_PIPE_SPEED);
   const [frozen, setFrozen] = useState(true);
   const [previousHighScore, setPreviousHighScore] = useState(0);
-  const [showIntro, setShowIntro] = useState(true); // Move intro state to the top level
-
+  const [showIntro, setShowIntro] = useState(true);
+  const [blink, setBlink] = useState(false);
   useEffect(() => {
     const introTimer = setTimeout(() => {
       setShowIntro(false);
@@ -130,6 +130,11 @@ const Game = () => {
               setHighScore(newScore);
               localStorage.setItem('highScore', newScore);
             }
+            // Trigger blink effect
+            if (newScore % 100 === 0) {
+              setBlink(true);
+              setTimeout(() => setBlink(false), 2000); // Reset blink after animation
+            }
             return newScore;
           });
         }
@@ -198,7 +203,7 @@ const Game = () => {
         {pipes.map((pipe, index) => (
           <Pipe key={index} x={pipe.x} yTop={pipe.yTop} gap={PIPE_GAP} />
         ))}
-        <Score score={score} highScore={highScore} />
+        <Score score={score} highScore={highScore} blink={blink} />
         {!gameStarted && !gameOver && (
           <div style={{
             position: 'absolute',
