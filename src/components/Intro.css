@@ -1,0 +1,88 @@
+/* Intro.css */
+
+/* Base styles for the intro container */
+.intro-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #282c34;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensure it's on top of other elements */
+  opacity: 1; /* Default opacity */
+  transition: opacity 1s ease-out;
+  font-family: 'Arial', sans-serif; /* Custom font style */
+}
+
+/* Fade out effect */
+.fade-out {
+  opacity: 0;
+}
+
+/* Container for the content */
+.intro-content {
+  text-align: center;
+}
+
+/* Style for the main title */
+.intro-content h1 {
+  font-size: 3rem; /* Adjust font size as needed */
+  margin-bottom: 2rem;
+}
+
+/* Style for the buffering animation */
+.buffering {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem 0;
+  margin-bottom: 15rem;
+}
+
+.buffering span {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: white;
+  border-radius: 50%;
+  margin: 0 5px;
+  animation: buffering 1.5s infinite;
+}
+
+.buffering span:nth-child(1) {
+  animation-delay: -0.4s;
+}
+
+.buffering span:nth-child(2) {
+  animation-delay: -0.2s;
+}
+
+.buffering span:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes buffering {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+
+/* Style for the loading text and emoji */
+.intro-content p {
+  font-size: 1.5rem; /* Adjust font size as needed */
+  margin: 0.5rem 0;
+}
+
+/* Love emoji styling */
+.intro-content .emoji {
+  font-size: 2rem; /* Adjust size of emoji */
+}

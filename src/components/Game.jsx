@@ -1,5 +1,5 @@
-// Game.js
 import React, { useState, useEffect, useCallback } from 'react';
+import Intro from './Intro';
 import Bird from './Bird';
 import Pipe from './Pipe';
 import Score from './Score';
@@ -9,52 +9,89 @@ const GRAVITY = 3;
 const JUMP_STRENGTH = 60;
 const PIPE_WIDTH = 80;
 const PIPE_GAP = 200;
-const INITIAL_PIPE_SPEED = 5;
+const INITIAL_PIPE_SPEED = 10;
 const PIPE_SPACING = 400;
-const NUM_PIPES = 3;
+const NUM_PIPES = 4;
+const PIPE_VARIANCE = 110;
+const MIN_PIPE_SPACING = 200;
+const SPEED_INCREMENT_INTERVAL = 10; // Increase speed every 10 points
+const SPACING_DECREASE_INTERVAL = 15; // Decrease spacing every 15 points
+const VARIANCE_INCREASE_INTERVAL = 20; // Increase variance every 20 points
 
 const Game = () => {
-  const [birdY, setBirdY] = useState(50);
+  const initialBirdY = window.innerHeight / 2 - 30;
+  const [birdY, setBirdY] = useState(initialBirdY);
   const [pipes, setPipes] = useState([]);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameSpeed, setGameSpeed] = useState(INITIAL_PIPE_SPEED);
-  const [frozen, setFrozen] = useState(false);
+  const [frozen, setFrozen] = useState(true);
+  const [previousHighScore, setPreviousHighScore] = useState(0);
+  const [showIntro, setShowIntro] = useState(true); // Move intro state to the top level
 
-  const generatePipe = (x) => ({
-    x,
-    yTop: Math.floor(Math.random() * (window.innerHeight - PIPE_GAP - 100)) + 50,
-  });
+  useEffect(() => {
+    const introTimer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // Duration of the intro
+
+    return () => clearTimeout(introTimer);
+  }, []);
+
+  const getPipeSpeed = (score) => INITIAL_PIPE_SPEED + Math.floor(score / SPEED_INCREMENT_INTERVAL) * 0.5;
+
+  const getPipeSpacing = (score) => {
+    const minSpacing = MIN_PIPE_SPACING;
+    const spacingDecrease = Math.floor(score / SPACING_DECREASE_INTERVAL) * 10;
+    return Math.max(minSpacing, PIPE_SPACING - spacingDecrease);
+  };
+
+  const getPipeVariance = (score) => {
+    const minVariance = 80;
+    const varianceIncrease = Math.floor(score / VARIANCE_INCREASE_INTERVAL) * 5;
+    return Math.min(PIPE_VARIANCE + varianceIncrease, 150);
+  };
+
+  const generatePipe = (x, prevY) => {
+    const variance = getPipeVariance(score);
+    const minGapTop = Math.max(50, prevY - variance);
+    const maxGapTop = Math.min(window.innerHeight - PIPE_GAP - 50, prevY + variance);
+    const yTop = Math.floor(Math.random() * (maxGapTop - minGapTop + 1)) + minGapTop;
+    return { x, yTop };
+  };
 
   const initializePipes = useCallback(() => {
     const newPipes = [];
+    let prevY = Math.floor(window.innerHeight / 2 - PIPE_GAP / 2);
     for (let i = 0; i < NUM_PIPES; i++) {
-      newPipes.push(generatePipe(window.innerWidth + i * PIPE_SPACING));
+      const pipe = generatePipe(window.innerWidth + i * getPipeSpacing(score), prevY);
+      newPipes.push(pipe);
+      prevY = pipe.yTop;
     }
     setPipes(newPipes);
-  }, []);
+  }, [score]);
 
   const jump = useCallback(() => {
-    if (!gameOver) {
+    if (!gameOver && !frozen) {
       setBirdY(prev => Math.max(0, prev - JUMP_STRENGTH));
       if (!gameStarted) {
         setGameStarted(true);
         initializePipes();
       }
     }
-  }, [gameOver, gameStarted, initializePipes]);
+  }, [gameOver, gameStarted, initializePipes, frozen]);
 
   const resetGame = useCallback(() => {
-    setBirdY(50);
+    setBirdY(initialBirdY);
     initializePipes();
     setScore(0);
     setGameOver(false);
     setGameStarted(false);
     setGameSpeed(INITIAL_PIPE_SPEED);
     setFrozen(false);
-  }, [initializePipes]);
+    setPreviousHighScore(highScore);
+  }, [initializePipes, highScore, initialBirdY]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -75,24 +112,23 @@ const Game = () => {
     if (!gameStarted || frozen) return;
 
     const gameLoop = setInterval(() => {
+      const newPipeSpeed = getPipeSpeed(score);
       setBirdY(prev => Math.min(prev + GRAVITY, window.innerHeight - 30));
       setPipes(prevPipes => {
         const newPipes = prevPipes.map(pipe => ({
           ...pipe,
-          x: pipe.x - gameSpeed,
+          x: pipe.x - newPipeSpeed,
         }));
 
         if (newPipes[0].x <= -PIPE_WIDTH) {
+          const prevPipeY = newPipes[newPipes.length - 1].yTop;
           newPipes.shift();
-          newPipes.push(generatePipe(newPipes[newPipes.length - 1].x + PIPE_SPACING));
+          newPipes.push(generatePipe(newPipes[newPipes.length - 1].x + getPipeSpacing(score), prevPipeY));
           setScore(prevScore => {
             const newScore = prevScore + 1;
             if (newScore > highScore) {
               setHighScore(newScore);
               localStorage.setItem('highScore', newScore);
-            }
-            if (newScore % 10 === 0) {
-              setGameSpeed(prevSpeed => prevSpeed + 0.75);
             }
             return newScore;
           });
@@ -119,12 +155,22 @@ const Game = () => {
     }, 20);
 
     return () => clearInterval(gameLoop);
-  }, [birdY, pipes, gameOver, gameStarted, highScore, gameSpeed, frozen]);
+  }, [birdY, pipes, gameOver, gameStarted, highScore, score, frozen]);
 
   useEffect(() => {
     const storedHighScore = localStorage.getItem('highScore');
-    if (storedHighScore) setHighScore(parseInt(storedHighScore, 10));
+    if (storedHighScore) {
+      const newHighScore = parseInt(storedHighScore, 10);
+      setHighScore(newHighScore);
+      setPreviousHighScore(newHighScore);
+    }
   }, []);
+
+  useEffect(() => {
+    if (!showIntro) {
+      setFrozen(false); // Unfreeze the game when the intro ends
+    }
+  }, [showIntro]);
 
   const checkCollision = (rect1, rect2) => {
     return (
@@ -136,43 +182,46 @@ const Game = () => {
   };
 
   return (
-    <div 
-      style={{
-        width: '100%',
-        height: '100vh',
-        backgroundColor: 'skyblue',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
-      onClick={jump}
-    >
-      <Bird y={birdY} />
-      {pipes.map((pipe, index) => (
-        <Pipe key={index} x={pipe.x} yTop={pipe.yTop} gap={PIPE_GAP} />
-      ))}
-      <Score score={score} highScore={highScore} />
-      {!gameStarted && !gameOver && (
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
+    <>
+      {showIntro && <Intro onIntroEnd={() => setShowIntro(false)} />}
+      <div 
+        style={{
+          width: '100%',
+          height: '100vh',
+          backgroundColor: 'skyblue',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+        onClick={jump}
+      >
+        <Bird y={birdY} />
+        {pipes.map((pipe, index) => (
+          <Pipe key={index} x={pipe.x} yTop={pipe.yTop} gap={PIPE_GAP} />
+        ))}
+        <Score score={score} highScore={highScore} />
+        {!gameStarted && !gameOver && (
           <div style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            color: 'white',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            padding: '16px',
-            borderRadius: '8px'
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            Click or Press Space to Start
+            <div style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: 'white',
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              padding: '16px',
+              borderRadius: '8px'
+            }}>
+              Click or Press Space to Start
+            </div>
           </div>
-        </div>
-      )}
-      {gameOver && <GameOverBoard score={score} highScore={highScore} onRestart={resetGame} />}
-    </div>
+        )}
+        {gameOver && <GameOverBoard score={score} highScore={highScore} previousHighScore={previousHighScore} onRestart={resetGame} />}
+      </div>
+    </>
   );
 };
 
