@@ -24,7 +24,8 @@ const Intro = ({onIntroEnd}) => {
           <span></span>
           <span></span>
         </div>
-        <p>Made with ❤️ Piyush Bhagchandani</p>
+        <p>your concentration and focus: </p>
+        <p>Before: 0 👎🏻    After: 100 🫣</p>
       </div>
     </div>
   );
